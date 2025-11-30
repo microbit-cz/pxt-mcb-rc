@@ -1,9 +1,9 @@
 /*
 
-//nastavit stejný radiogrp a band na TX i RX
 radio.setGroup(1)
 radio.setFrequencyBand(40)
 radio.setTransmitSerialNumber(true)
+let pairedSerialNo = -1
 
 type ButtonKey = "A" | "B" | "C" | "D" | "E" | "F" | "P"
 declare type PinMapItem = {
@@ -35,7 +35,33 @@ const joyState: JoyStateItem = {
     deg: 0
 }
 
+let pairingMode = false
+const doPairing = () => {
+    pairingMode = true
+    const start = control.millis();
+    while (pairingMode) {
+        basic.showIcon(IconNames.Pitchfork, 0)
+        music.playTone(440, 100)
+        basic.clearScreen();
+        if ((start + 10000) < control.millis())
+            pairingMode = false;
+        else
+            basic.pause(300)
+    }
+}
+input.onLogoEvent(TouchButtonEvent.LongPressed, doPairing)
+radio.onReceivedValue(function(name: string, value: number) {
+    if (name==="serial" && pairingMode) {
+        if (radio.receivedPacket(RadioPacketProperty.SerialNumber) === value)
+        pairedSerialNo = value
+        basic.showIcon(IconNames.Happy, 1000)
+        pairingMode = false
+    }
+})
+
 radio.onReceivedNumber(function (n: number) {
+    if (pairedSerialNo !== radio.receivedPacket(RadioPacketProperty.SerialNumber)) return;
+
     let buttonsMask = n & 0b1111111      // bity 0–6
     let dir = (n >> 7) & 0b111           // bity 7–9
     let strength = (n >> 10) & 0b1111111 // bity 10–16
@@ -47,6 +73,107 @@ radio.onReceivedNumber(function (n: number) {
     joyState.dirArrow = dir
     joyState.strength = strength
     joyState.deg = deg
+
+    refreshDisplay();
 })
+
+
+function getImage(ch: string): Image {
+    let result: Image = images.createImage(`
+        . . . . .
+        . . . . .
+        . # # # .
+        . . . . .
+        . . . . .
+        `)
+
+    switch (ch.charAt(0).toUpperCase()) {
+        case "A":
+            result = images.createImage(`
+                . # # # .
+                # . . . #
+                # # # # #
+                # . . . #
+                # . . . #
+                `)
+            break;
+        case "B":
+            result = images.createImage(`
+                # # # . .
+                # . . # .
+                # # # . .
+                # . . # .
+                # # # . .
+                `)
+            break;
+        case "C":
+            result = images.createImage(`
+                . # # # .
+                # . . . .
+                # . . . .
+                # . . . .
+                . # # # .
+                `)
+            break;
+        case "D":
+            result = images.createImage(`
+                # # # . .
+                # . . # .
+                # . . # .
+                # . . # .
+                # # # . .
+                `)
+            break;
+        case "E":
+            result = images.createImage(`
+                # # # # #
+                # . . . .
+                # # # # .
+                # . . . .
+                # # # # #
+                `)
+            break;
+        case "F":
+            result = images.createImage(`
+                # # # # #
+                # . . . .
+                # # # # .
+                # . . . .
+                # . . . .
+                `)
+            break;
+        case "P":
+            result = images.createImage(`
+                # # # # .
+                # . . . #
+                # # # # .
+                # . . . .
+                # . . . .
+                `)
+            break;
+    }
+
+    const arrNo: number = ch.charCodeAt(0) - 48
+    if (arrNo >= 0 && arrNo <= 7) result = images.arrowImage(arrNo);
+
+    return result;
+}
+
+function refreshDisplay() {
+    let imageToShow: Image = getImage("-");
+    if (joyState.strength > 3) {
+        imageToShow = getImage(joyState.dirArrow.toString())
+    } else {
+        joyState.dirArrow = 0
+        joyState.deg = 0
+    }
+    for (let btn of btnState) {
+        if (btn.value) {
+            imageToShow = getImage(btn.key)
+            break;
+        }
+    }
+    imageToShow.showImage(0, 0);
+}
 
 */
