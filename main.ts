@@ -1,9 +1,21 @@
 //nastavit stejný radiogrp a band na TX i RX
-radio.setGroup(1)
-radio.setFrequencyBand(40)
+radio.setGroup(10)
+radio.setFrequencyBand(66)
 radio.setTransmitSerialNumber(true)
+let lastPacked = -1
+let paired = false;
+let serialRX = -1;
 
-const center = { x: pins.analogReadPin(AnalogPin.P2), y: pins.analogReadPin(AnalogPin.P1)} //{ x: 502, y: 512 }
+const center = { x: pins.analogReadPin(AnalogPin.P2), y: pins.analogReadPin(AnalogPin.P1) } //{ x: 502, y: 512 }
+
+control.inBackground(()=>{
+    while (!paired && control.millis() < 10000) {
+        submitPairCode()
+        basic.pause(300)
+    }
+    if (paired) basic.showIcon(IconNames.Happy)
+})
+
 const MAX_RADIUS = 512
 const PINSmap: Array<PinMapItem> = [
     { key: "A", pin: DigitalPin.P5 },
@@ -28,7 +40,6 @@ const joyState: JoyStateItem = {
     strength: 0,
     deg: 0
 }
-let lastPacked = -1
 
 basic.forever(() => {
     let x = pins.analogReadPin(AnalogPin.P2)
@@ -70,7 +81,7 @@ basic.forever(() => {
     joyState.deg = deg < 0 ? (450 - (deg + 360)) % 360 : (450 - deg) % 360
 
     let imageToShow: Image = getImage("-");
-    if (joyState.strength > 3) {
+    if (joyState.strength > 5) {
         imageToShow = getImage(joyState.dirArrow.toString())
     } else {
         joyState.dirArrow = 0
@@ -84,19 +95,36 @@ basic.forever(() => {
     }
     imageToShow.showImage(0, 0);
 
-    let packed = packState(joyState, btnState)
-    if (packed != lastPacked) {
-        radio.sendNumber(packed)
-        lastPacked = packed
+    if (paired) 
+    {
+        let packed = packState(joyState, btnState)
+        if (packed != lastPacked) {
+            radio.sendNumber(packed)
+            lastPacked = packed
+        }
     }
 
     basic.pause(20)
 })
 
-input.onLogoEvent(TouchButtonEvent.Pressed, () => {
+function submitPairCode() {
     radio.sendValue("serial", control.deviceSerialNumber())
     basic.showIcon(IconNames.Pitchfork)
     basic.clearScreen()
+}
+input.onLogoEvent(TouchButtonEvent.Pressed, submitPairCode)
+
+radio.onReceivedValue(function(name: string, value: number) {
+    if (name === "pairing") {
+        if (!paired && value === 1) {
+            serialRX = radio.receivedPacket(RadioPacketProperty.SerialNumber);
+            paired = true
+        }
+        if (paired && value === 0 && radio.receivedPacket(RadioPacketProperty.SerialNumber) === serialRX)
+        {
+            submitPairCode()
+        }
+    }
 })
 
 function packState(joy: JoyStateItem, btns: Array<ButtonStateItem>): number {
