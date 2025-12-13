@@ -1,21 +1,20 @@
 {
-    "name": "pxt-ants-make-joystick",
-    "description": "",
+    "name": "mcb-rc-transmitter",
+    "version": "1.0.0",
+    "description": "RC transmitter extension for Micro:bit - control RC cars and robots with joystick or accelerometer",
+    "license": "MIT",
     "dependencies": {
         "core": "*",
-        "radio": "*",
-        "microphone": "*"
+        "radio": "*"
     },
     "files": [
         "main.ts",
-        "README.md",
-        "letters.ts",
-        "types.ts",
-        "receiver.ts"
+        "README.md"
     ],
     "testFiles": [
         "test.ts"
     ],
+    "public": true,
     "targetVersions": {
         "target": "8.0.18",
         "targetId": "microbit"
@@ -24,5 +23,8 @@
         "microbit"
     ],
     "preferredEditor": "tsprj",
-    "languageRestriction": "javascript-only"
+    "languageRestriction": "javascript-only",
+    "authors": [
+        "Tomas Kazda"
+    ]
 }
