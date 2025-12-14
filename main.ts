@@ -1,19 +1,19 @@
 //% color="#FF6B35" weight=100 icon="\uf11b"
-namespace mcbRC {
+namespace mcbRCtx {
     // Type definitions
-    type ButtonKey = "A" | "B" | "C" | "D" | "E" | "F" | "P"
+    //type ButtonKey = "A" | "B" | "C" | "D" | "E" | "F" | "P"
 
-    declare type PinMapItem = {
-        key: ButtonKey
+    export type PinMapItem = {
+        key: string
         pin: DigitalPin
     }
 
-    declare type ButtonStateItem = {
-        key: ButtonKey
+    type ButtonStateItem = {
+        key: string
         value: boolean
     }
 
-    declare type JoyStateItem = {
+    type JoyStateItem = {
         dirArrow: number,
         strength: number,
         deg: number
@@ -27,14 +27,25 @@ namespace mcbRC {
     // Variables
     let lastPacked = -1
     let paired = false
+    let isInitialized = false
     let serialRX = -1
     let pinSrc: boolean = true
     let xPin: AnalogPin = AnalogPin.P2
     let yPin: AnalogPin = AnalogPin.P1
     let center: CenterPoint = { x: 0, y: 0 }
     let MAX_RADIUS = 512
+    let getImage: (ch: string) => Image = defaultImageMapping;
+    let pinsMap: Array<PinMapItem> = []
+    //logo ID 121
+    let btnState: Array<ButtonStateItem> = []
 
-    const PINSmap: Array<PinMapItem> = [
+    const joyState: JoyStateItem = {
+        dirArrow: 0,
+        strength: 0,
+        deg: 0
+    }
+    
+    setPinsMap([
         { key: "A", pin: DigitalPin.P5 },
         { key: "B", pin: DigitalPin.P11 },
         { key: "C", pin: DigitalPin.P15 },
@@ -42,22 +53,76 @@ namespace mcbRC {
         { key: "E", pin: DigitalPin.P13 },
         { key: "F", pin: DigitalPin.P12 },
         { key: "P", pin: DigitalPin.P8 }
-    ]
+    ])
 
-    const btnState: Array<ButtonStateItem> = [
-        { key: "A", value: false },
-        { key: "B", value: false },
-        { key: "C", value: false },
-        { key: "D", value: false },
-        { key: "E", value: false },
-        { key: "F", value: false },
-        { key: "P", value: false }
-    ]
+    /**
+     * Set custom image mapping function for display feedback
+     * @param customImageFunction Function that takes a string key and returns an Image
+     * 
+     * Example usage:
+     * ```
+     * function getImage(ch: string): Image {
+     *     if (ch.charAt(0) == "A") {
+     *         return images.createImage(`
+     *             . # # # .
+     *             # . . . #
+     *             # # # # #
+     *             # . . . #
+     *             # . . . #
+     *         `)
+     *     } else if (ch.charCodeAt(0) - 48 >= 0 && ch.charCodeAt(0) - 48 <= 7) {
+     *         return images.arrowImage(ch.charCodeAt(0) - 48)
+     *     }
+     *     return images.createImage(`. . . . .\n. . . . .\n. # # # .\n. . . . .\n. . . . .`)
+     * }
+     * mcbRC.setGetImage(getImage)
+     * ```
+     */
+    //% block="set custom image handler $customImageFunction"
+    //% weight=80
+    //% advanced=true
+    export function setGetImage(customImageFunction: (key: string) => Image): void {
+        getImage = customImageFunction
+    }
 
-    const joyState: JoyStateItem = {
-        dirArrow: 0,
-        strength: 0,
-        deg: 0
+    /**
+     * Configure button pins mapping
+     * @param pinmap Array of button key to pin mappings
+     */
+    //% block="set pins map $pinmap"
+    //% weight=75
+    //% advanced=true
+    export function setPinsMap(pinmap: PinMapItem[]): void {
+        pinsMap = pinmap;
+        btnState = pinmap.map((v, i) => ({ key: v.key, value: false } as ButtonStateItem))
+        if (paired) packButtonConfig(btnState)
+    }
+
+    /**
+     * Get current joystick strength (0-100)
+     */
+    //% block="joystick strength"
+    //% weight=70
+    export function getStrength(): number {
+        return joyState.strength
+    }
+
+    /**
+     * Get current joystick direction in degrees (0-359)
+     */
+    //% block="joystick direction"
+    //% weight=65
+    export function getDirection(): number {
+        return joyState.deg
+    }
+
+    /**
+     * Check if RC transmitter is paired
+     */
+    //% block="is paired"
+    //% weight=60
+    export function isPaired(): boolean {
+        return paired
     }
 
     /**
@@ -106,8 +171,10 @@ namespace mcbRC {
             MAX_RADIUS = 1024
         }
 
-        // Start main loop
-        startMainLoop()
+        if (!isInitialized) {
+            isInitialized = true
+            startMainLoop()
+        }
     }
 
     /**
@@ -142,7 +209,7 @@ namespace mcbRC {
 
             // Read button states
             for (let btn of btnState) {
-                const mapping = PINSmap.find(v => v.key === btn.key)
+                const mapping = pinsMap.find(v => v.key === btn.key)
                 if (mapping) {
                     btn.value = pins.digitalReadPin(mapping.pin) === 0
                 }
@@ -207,6 +274,24 @@ namespace mcbRC {
         basic.showIcon(IconNames.Pitchfork)
         basic.clearScreen()
     }
+    
+    /**
+     * Pack button configuration into buffer for pairing
+     * Format: [count: 1 byte][key1: 1 byte][key2: 1 byte]...[keyN: 1 byte]
+     * Max 18 buttons (1 byte pro count + 18 bytes pro keys)
+     */
+    function packButtonConfig(btnState: Array<ButtonStateItem>): Buffer {
+        const count = btnState.length
+        const buffer = pins.createBuffer(count + 1)
+
+        buffer.setNumber(NumberFormat.UInt8LE, 0, count)
+
+        for (let i = 0; i < count; i++) {
+            buffer.setNumber(NumberFormat.UInt8LE, i + 1, btnState[i].key.charCodeAt(0))
+        }
+
+        return buffer
+    }
 
     function packState(joy: JoyStateItem, btns: Array<ButtonStateItem>): number {
         let buttonsMask = 0
@@ -233,93 +318,91 @@ namespace mcbRC {
         if (name === "pairing") {
             if (!paired && value === 1) {
                 paired = true
+                radio.sendBuffer(packButtonConfig(btnState))
                 serialRX = radio.receivedPacket(RadioPacketProperty.SerialNumber)
             }
             if (paired && value === 0 && radio.receivedPacket(RadioPacketProperty.SerialNumber) === serialRX) {
                 submitPairCode()
+                radio.sendBuffer(packButtonConfig(btnState))
             }
         }
     })
 
 
-    function getImage(ch: string): Image {
-        let result: Image = images.createImage(`
-        . . . . .
-        . . . . .
-        . # # # .
-        . . . . .
-        . . . . .
-        `)
-
-        switch (ch.charAt(0).toUpperCase()) {
-            case "A":
-                result = images.createImage(`
-                . # # # .
-                # . . . #
-                # # # # #
-                # . . . #
-                # . . . #
-                `)
-                break;
-            case "B":
-                result = images.createImage(`
-                # # # . .
-                # . . # .
-                # # # . .
-                # . . # .
-                # # # . .
-                `)
-                break;
-            case "C":
-                result = images.createImage(`
-                . # # # .
-                # . . . .
-                # . . . .
-                # . . . .
-                . # # # .
-                `)
-                break;
-            case "D":
-                result = images.createImage(`
-                # # # . .
-                # . . # .
-                # . . # .
-                # . . # .
-                # # # . .
-                `)
-                break;
-            case "E":
-                result = images.createImage(`
-                # # # # #
-                # . . . .
-                # # # # .
-                # . . . .
-                # # # # #
-                `)
-                break;
-            case "F":
-                result = images.createImage(`
-                # # # # #
-                # . . . .
-                # # # # .
-                # . . . .
-                # . . . .
-                `)
-                break;
-            case "P":
-                result = images.createImage(`
-                # # # # .
-                # . . . #
-                # # # # .
-                # . . . .
-                # . . . .
-                `)
-                break;
+    /**
+     * Default image mapping function - copy and modify this for custom images
+     * @param ch Character key for image selection
+     */
+    //% block="default image for key $ch"
+    //% weight=78
+    //% advanced=true 
+    export function defaultImageMapping(ch: string): Image {
+        if (ch.charAt(0) == "A") {
+            return images.createImage(`
+            . # # # .
+            # . . . #
+            # # # # #
+            # . . . #
+            # . . . #
+            `)
+        } else if (ch.charAt(0) == "B") {
+            return images.createImage(`
+            # # # . .
+            # . . # .
+            # # # . .
+            # . . # .
+            # # # . .
+            `)
+        } else if (ch.charAt(0) == "C") {
+            return images.createImage(`
+            . # # # .
+            # . . . .
+            # . . . .
+            # . . . .
+            . # # # .
+            `)
+        } else if (ch.charAt(0) == "D") {
+            return images.createImage(`
+            # # # . .
+            # . . # .
+            # . . # .
+            # . . # .
+            # # # . .
+            `)
+        } else if (ch.charAt(0) == "E") {
+            return images.createImage(`
+            # # # # #
+            # . . . .
+            # # # # .
+            # . . . .
+            # # # # #
+            `)
+        } else if (ch.charAt(0) == "F") {
+            return images.createImage(`
+            # # # # #
+            # . . . .
+            # # # # .
+            # . . . .
+            # . . . .
+            `)
+        } else if (ch.charAt(0) == "P") {
+            return images.createImage(`
+            # # # # .
+            # . . . #
+            # # # # .
+            # . . . .
+            # . . . .
+            `)
+        } else if (ch.charCodeAt(0) - 48 >= 0 && ch.charCodeAt(0) - 48 <= 7) {
+            return images.arrowImage(ch.charCodeAt(0) - 48)
+        } else {
+            return images.createImage(`
+            . . . . .
+            . . . . .
+            . # # # .
+            . . . . .
+            . . . . .
+            `)
         }
-
-        const arrNo: number = ch.charCodeAt(0) - 48
-        if (arrNo >= 0 && arrNo <= 7) result = images.arrowImage(arrNo);
-
-        return result;
     }
 }
