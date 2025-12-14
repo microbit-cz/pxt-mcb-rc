@@ -1,7 +1,7 @@
 {
-    "name": "mcb-rc-transmitter",
+    "name": "mcb-rc",
     "version": "1.0.0",
-    "description": "RC transmitter extension for Micro:bit - control RC cars and robots with joystick or accelerometer",
+    "description": "RC transmitter / receiver extension for Micro:bit - control RC cars and robots with joystick or accelerometer",
     "license": "MIT",
     "dependencies": {
         "core": "*",
@@ -10,7 +10,8 @@
     "files": [
         "main.ts",
         "README.md",
-        "imageMapping.ts"
+        "imageMapping.ts",
+        "mcbRCrx.ts"
     ],
     "testFiles": [
         "test.ts"

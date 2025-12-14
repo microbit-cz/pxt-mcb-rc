@@ -58,42 +58,14 @@ namespace mcbRCtx {
     /**
      * Set custom image mapping function for display feedback
      * @param customImageFunction Function that takes a string key and returns an Image
-     * 
-     * Example usage:
-     * ```
-     * function getImage(ch: string): Image {
-     *     if (ch.charAt(0) == "A") {
-     *         return images.createImage(`
-     *             . # # # .
-     *             # . . . #
-     *             # # # # #
-     *             # . . . #
-     *             # . . . #
-     *         `)
-     *     } else if (ch.charCodeAt(0) - 48 >= 0 && ch.charCodeAt(0) - 48 <= 7) {
-     *         return images.arrowImage(ch.charCodeAt(0) - 48)
-     *     }
-     *     return images.createImage(`. . . . .\n. . . . .\n. # # # .\n. . . . .\n. . . . .`)
-     * }
-     * mcbRC.setGetImage(getImage)
-     * ```
      */
     //% block="set custom image handler"
     //% draggableParameters="reporter"
     //% weight=80
     //% advanced=true
+    //% blockHidden=true
     export function setGetImage(customImageFunction: (key: string) => Image): void {
         getImage = customImageFunction
-    }
-
-    /**
-     * Reset to default image mapping
-     */
-    //% block="use default image mapping"
-    //% weight=79
-    //% advanced=true
-    export function useDefaultImageMapping(): void {
-        getImage = defaultImageMapping
     }
 
     /**
@@ -103,6 +75,7 @@ namespace mcbRCtx {
     //% block="set pins map $pinmap"
     //% weight=75
     //% advanced=true
+    //% blockHidden=true
     export function setPinsMap(pinmap: PinMapItem[]): void {
         pinsMap = pinmap;
         btnState = pinmap.map((v, i) => ({ key: v.key, value: false } as ButtonStateItem))
@@ -338,81 +311,4 @@ namespace mcbRCtx {
             }
         }
     })
-
-    /**
- * Default image mapping function - copy and modify this for custom images
- * @param ch Character key for image selection
- */
-    //% block="default image for key $ch"
-    //% weight=78
-    //% advanced=true 
-    function defaultImageMapping(ch: string): Image {
-        if (ch.charAt(0) == "A") {
-            return images.createImage(`
-            . # # # .
-            # . . . #
-            # # # # #
-            # . . . #
-            # . . . #
-            `)
-        } else if (ch.charAt(0) == "B") {
-            return images.createImage(`
-            # # # . .
-            # . . # .
-            # # # . .
-            # . . # .
-            # # # . .
-            `)
-        } else if (ch.charAt(0) == "C") {
-            return images.createImage(`
-            . # # # .
-            # . . . .
-            # . . . .
-            # . . . .
-            . # # # .
-            `)
-        } else if (ch.charAt(0) == "D") {
-            return images.createImage(`
-            # # # . .
-            # . . # .
-            # . . # .
-            # . . # .
-            # # # . .
-            `)
-        } else if (ch.charAt(0) == "E") {
-            return images.createImage(`
-            # # # # #
-            # . . . .
-            # # # # .
-            # . . . .
-            # # # # #
-            `)
-        } else if (ch.charAt(0) == "F") {
-            return images.createImage(`
-            # # # # #
-            # . . . .
-            # # # # .
-            # . . . .
-            # . . . .
-            `)
-        } else if (ch.charAt(0) == "P") {
-            return images.createImage(`
-            # # # # .
-            # . . . #
-            # # # # .
-            # . . . .
-            # . . . .
-            `)
-        } else if (ch.charCodeAt(0) - 48 >= 0 && ch.charCodeAt(0) - 48 <= 7) {
-            return images.arrowImage(ch.charCodeAt(0) - 48)
-        } else {
-            return images.createImage(`
-            . . . . .
-            . . . . .
-            . # # # .
-            . . . . .
-            . . . . .
-            `)
-        }
-    }
 }
