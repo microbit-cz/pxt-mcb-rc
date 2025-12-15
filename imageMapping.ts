@@ -56,6 +56,14 @@ namespace mcbRCtx {
             # . . . .
             # . . . .
             `)
+        } else if (ch.charAt(0) == "L") {
+            return images.createImage(`
+            . . . . .
+            . # # # .
+            # . # . #
+            . # # # .
+            . . . . .
+            `)
         } else if (ch.charAt(0) == "P") {
             return images.createImage(`
             # # # # .

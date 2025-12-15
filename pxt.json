@@ -11,7 +11,8 @@
         "main.ts",
         "README.md",
         "imageMapping.ts",
-        "mcbRCrx.ts"
+        "mcbRCrx.ts",
+        "mcbRCtx.ts"
     ],
     "testFiles": [
         "test.ts"
