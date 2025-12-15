@@ -168,11 +168,26 @@ namespace mcbRCtx {
                     { key: "B", pin: DigitalPin.P11 }
                 ])
             }
-            MAX_RADIUS = 1024
+            MAX_RADIUS = 1023
         }
         if (!isInitialized) {
             isInitialized = true
             startMainLoop()
+
+            // Radio receiver for pairing
+            radio.onReceivedValue(function (name: string, value: number) {
+                if (name === "pairing") {
+                    if (!paired && value === 1) {
+                        paired = true
+                        radio.sendBuffer(packButtonConfig(btnState))
+                        serialRX = radio.receivedPacket(RadioPacketProperty.SerialNumber)
+                    }
+                    if (paired && value === 0 && radio.receivedPacket(RadioPacketProperty.SerialNumber) === serialRX) {
+                        submitPairCode()
+                        radio.sendBuffer(packButtonConfig(btnState))
+                    }
+                }
+            })
         }
     }
 
@@ -181,7 +196,7 @@ namespace mcbRCtx {
      */
     //% block="pair RC transmitter"
     //% weight=90
-    export function doPair(): void {
+    export function doPairing(): void {
         paired = false
         serialRX = -1
         control.inBackground(() => {
@@ -225,7 +240,9 @@ namespace mcbRCtx {
             if (dir >= 8) dir -= 8
 
             let squareMag = Math.max(Math.abs(dx), Math.abs(dy))
-
+            //sensitivity correction for gyro joystick
+            if (!pinSrc && squareMag < 20) squareMag = 0 
+            
             joyState.strength = Math.round(
                 pins.map(
                     squareMag > MAX_RADIUS ? MAX_RADIUS : squareMag,
@@ -238,7 +255,7 @@ namespace mcbRCtx {
             joyState.dirArrow = [2, 1, 0, 7, 6, 5, 4, 3][dir]
             let deg = Math.round(rad * 180 / Math.PI)
             joyState.deg = deg < 0 ? (450 - (deg + 360)) % 360 : (450 - deg) % 360
-console.log(joyState)
+
             // Display feedback
             let imageToShow: Image = getImage("-")
             if (joyState.strength > 5) {
@@ -306,25 +323,10 @@ console.log(joyState)
         const deg = joy.deg & 0b111111111
 
         return (
-            buttonsMask |
-            (dir << btns.length) |
-            (strength << (btns.length + 3)) |
-            (deg << (btns.length + 3 + 7))
+            dir |
+            strength << 3 |
+            deg << (3 + 7) |
+            buttonsMask << (3 + 7 + 9)
         )
     }
-
-    // Radio receiver for pairing
-    radio.onReceivedValue(function (name: string, value: number) {
-        if (name === "pairing") {
-            if (!paired && value === 1) {
-                paired = true
-                radio.sendBuffer(packButtonConfig(btnState))
-                serialRX = radio.receivedPacket(RadioPacketProperty.SerialNumber)
-            }
-            if (paired && value === 0 && radio.receivedPacket(RadioPacketProperty.SerialNumber) === serialRX) {
-                submitPairCode()
-                radio.sendBuffer(packButtonConfig(btnState))
-            }
-        }
-    })
 }

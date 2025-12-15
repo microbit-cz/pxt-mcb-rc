@@ -1,3 +1,5 @@
 //tests go here; this will not be compiled when this package is used as an extension.
 mcbRCtx.init(false);
-mcbRCtx.doPair();
+mcbRCtx.doPairing();
+//mcbRCrx.init();
+//mcbRCrx.doPairing();
