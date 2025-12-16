@@ -125,7 +125,7 @@ namespace mcbRCtx {
                 x: pins.analogReadPin(xPin),
                 y: pins.analogReadPin(yPin)
             }
-            if (pinsMap.length === 1) {
+            if (pinsMap.length === 0) {
                 setPinsMap([
                     { key: "A", pin: DigitalPin.P5 },
                     { key: "B", pin: DigitalPin.P11 },
