@@ -1,4 +1,7 @@
 namespace imageMapping {
+    // Cache for created images to avoid memory leaks
+    let imageCache: { [key: string]: Image } = {};
+
     /**
     * Default image mapping function - copy and modify this for custom images
     * @param ch Character key for image selection
@@ -8,64 +11,74 @@ namespace imageMapping {
     //% advanced=true 
     //% blockHidden=true
     export function defaultImageMapping(ch: string): Image {
-        if (ch.charAt(0) == "A") {
-            return images.createImage(`
+        const key = ch.charAt(0);
+        
+        // Return cached image if available
+        if (imageCache[key]) {
+            return imageCache[key];
+        }
+        
+        // Create and cache the image
+        let img: Image;
+        
+        if (key == "A") {
+            img = images.createImage(`
             . # # # .
             # . . . #
             # # # # #
             # . . . #
             # . . . #
             `)
-        } else if (ch.charAt(0) == "B") {
-            return images.createImage(`
+        } else if (key == "B") {
+            img = images.createImage(`
             # # # . .
             # . . # .
             # # # . .
             # . . # .
             # # # . .
             `)
-        } else if (ch.charAt(0) == "C") {
-            return images.createImage(`
+        } else if (key == "C") {
+            img = images.createImage(`
             . # # # .
             # . . . .
             # . . . .
             # . . . .
             . # # # .
             `)
-        } else if (ch.charAt(0) == "D") {
-            return images.createImage(`
+        } else if (key == "D") {
+            img = images.createImage(`
             # # # . .
             # . . # .
             # . . # .
             # . . # .
             # # # . .
             `)
-        } else if (ch.charAt(0) == "E") {
-            return images.createImage(`
+        } else if (key == "E") {
+            img = images.createImage(`
             # # # # #
             # . . . .
             # # # # .
             # . . . .
             # # # # #
             `)
-        } else if (ch.charAt(0) == "F") {
-            return images.createImage(`
+        } else if (key == "F") {
+            img = images.createImage(`
             # # # # #
             # . . . .
             # # # # .
             # . . . .
             # . . . .
             `)
-        } else if (ch.charAt(0) == "L") {
-            return images.createImage(`
+        } else if (key == "L") {
+            img = images.createImage(`
             . . . . .
             . # # # .
             # . # . #
             . # # # .
             . . . . .
             `)
-        } else if (ch.charAt(0) == "P") {
-            return images.createImage(`
+        } else if (key == "P") {
+            img = images.createImage(`
             # # # # .
             # . . . #
             # # # # .
@@ -73,9 +86,9 @@ namespace imageMapping {
             # . . . .
             `)
         } else if (ch.charCodeAt(0) - 48 >= 0 && ch.charCodeAt(0) - 48 <= 7) {
-            return images.arrowImage(ch.charCodeAt(0) - 48)
+            img = images.arrowImage(ch.charCodeAt(0) - 48)
         } else {
-            return images.createImage(`
+            img = images.createImage(`
             . . . . .
             . . . . .
             . . # . .
@@ -83,5 +96,8 @@ namespace imageMapping {
             . . . . .
             `)
         }
+        
+        imageCache[key] = img;
+        return img;
     }
 }
